@@ -8,7 +8,7 @@ def _quali_features(year:int, round:int) -> pd.DataFrame:
     res = q.results.copy()
     res['q_best_s'] = res[['Q1', 'Q2', 'Q3']].min(axis=1).dt.total_seconds()
     pole = res['q_best_s'].min()
-    res['gap_to_pole_s'] = res['q_best_s'] = pole
+    res['gap_to_pole_s'] = res['q_best_s'] - pole
     res['made_q3'] = res['Q3'].notna()
     res_sorted = res.sort_values('q_best_s')
     res['gap_to_ahead_s'] = res_sorted['q_best_s'].diff().fillna(0.0)
@@ -20,3 +20,23 @@ def _quali_features(year:int, round:int) -> pd.DataFrame:
 
     out = res[['Abbreviation', 'q_best_s', 'gap_to_pole_s', 'gap_to_ahead_s', 'made_q3']].join(grid)
     return out
+
+def _target_top_3(year:int, round:int) -> pd.DataFrame:
+    r = fastf1.get_session(year, round, 'R')
+    r.load()
+
+    res_r = r.results.copy()
+    res_r['finished_top_3'] = res_r['Position'] <= 3
+    return res_r[['finished_top_3']]
+
+def load_prerace_features(year:int, round:int, *, for_training: bool=True) -> pd.DataFrame:
+    feats = _quali_features(year, round)
+    if for_training:
+        feats = feats.join(_target_top_3(year, round))
+    else:
+        feats['finished_top_3'] = pd.NA
+
+    feats['year'] = year
+    feats['round'] = round
+
+    return feats.reset_index()
