@@ -13,12 +13,14 @@ def _quali_features(year:int, round:int) -> pd.DataFrame:
     res_sorted = res.sort_values('q_best_s')
     res['gap_to_ahead_s'] = res_sorted['q_best_s'].diff().fillna(0.0)
 
+    res['quali_position'] = res['q_best_s'].rank(method='min').astype('Int64')
+
     r = fastf1.get_session(year, round, 'R')
     r.load(laps=False, telemetry=False, weather=False, messages=False)
-
     grid = r.results[['GridPosition']]
 
-    out = res[['Abbreviation', 'q_best_s', 'gap_to_pole_s', 'gap_to_ahead_s', 'made_q3']].join(grid)
+    out = res[['Abbreviation', 'q_best_s', 'gap_to_pole_s',
+               'gap_to_ahead_s', 'made_q3', 'quali_position']].join(grid)
     return out
 
 
